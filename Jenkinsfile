@@ -33,14 +33,14 @@ pipeline {
         success {
             script {
                 sh """
-                curl -X POST -H 'Content-Type: application/json' -d '{"chat_id": "${TELEGRAM_CHAT_ID}", "text": "✅✅✅Build ${currentBuild.result}\nJob name: ${currentBuild.fullDisplayName}\n Job url: ${env.BUILD_URL}", "disable_notification": false}' https://api.telegram.org/${TELEGRAM_BOT_TOKEN}/sendMessage
+                curl -X POST -H 'Content-Type: application/json' -d '{"chat_id": "${TELEGRAM_CHAT_ID}", "text": "✅✅✅Build ${currentBuild.result}\nJob name: ${currentBuild.fullDisplayName}\n Job url: ${env.BUILD_URL}", "disable_notification": false}' https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage
                 """
                 }
                 }
                 failure {
                 script {
                 sh """
-                curl -X POST -H 'Content-Type: application/json' -d '{"chat_id": "${TELEGRAM_CHAT_ID}", "text": "❌❌❌Build ${currentBuild.result} \nJob name: ${currentBuild.fullDisplayName}\n \nJob url: ${env.BUILD_URL}", "disable_notification": false}' https://api.telegram.org/${TELEGRAM_BOT_TOKEN}/sendMessage
+                curl -X POST -H 'Content-Type: application/json' -d '{"chat_id": "${TELEGRAM_CHAT_ID}", "text": "❌❌❌Build ${currentBuild.result} \nJob name: ${currentBuild.fullDisplayName}\n \nJob url: ${env.BUILD_URL}", "disable_notification": false}' https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage
                 """
             }
         }
