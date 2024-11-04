@@ -1,99 +1,38 @@
 pipeline {
     agent any
-    environment {
-        GIT_BRANCH = "main" // Nhanh git build
-        GIT_REPO_NAME = "github.com/phanngocqui69/web-nginx-jenkins"
-        TELEGRAM_BOT_TOKEN = credentials('telegram-token') // Telegram bot access token
-        TELEGRAM_CHAT_ID = credentials('telegram-chat-id') // Telegram bot chat id
-        DOCKER_ENDPOINT = "phanngocqui69" //Docker user Hub hoac Docker Private Resistry ENDPOINT
-        DOCKER_NAME = "nginx-jenkins-${GIT_BRANCH}"
-        VERSION = "1.0"
-        TAG = "${VERSION}.${env.BUILD_NUMBER}.${GIT_BRANCH}"
-        IMAGE_NAME = "${DOCKER_ENDPOINT}/${DOCKER_NAME}"
-        SSH_USER = 'admin01'
-        }
     stages {
         stage('Clone Repository') {
             steps {
-                withCredentials([string(credentialsId: 'github-secret-token', variable: 'GITHUB_TOKEN')]) {
                 echo 'Cloning repository...'
-                sh """
-                #Xoa thu muc service neu ton tai
-                rm -rf service 
-                git clone -b ${GIT_BRANCH} https://${GITHUB_TOKEN}@${GIT_REPO_NAME} service --depth 2
-                """
-                }
+                checkout scm
             }
         }
         stage('Build Docker Image') {
             steps {
-                sh "printenv"
                 echo 'Building Docker image...'
-            dir('service') {
-                sh 'docker build -t ${IMAGE_NAME}:${TAG} .'
-                }
+                sh 'docker build -t my-web-app .'
             }
         }
-        stage('Push Image to Docker Hub') {
+        stage('Run Docker Container') {
             steps {
-                echo 'Push Docker image...'
-                withCredentials([usernamePassword(credentialsId: 'dockerhub-credentials', passwordVariable: 'dockerHubPassword', usernameVariable: 'dockerHubUser')]) {
-                    sh "docker login -u ${env.dockerHubUser} -p ${env.dockerHubPassword}"
-                    sh 'docker push ${IMAGE_NAME}:${TAG}'
+                echo 'Running Docker container...'
+                sh '''
+                docker stop my-web-app || true
+                docker rm my-web-app || true
+                docker run -d --name my-web-app -p 8090:80 my-web-app
+                '''
             }
         }
-        }
-        stage("Tag the version") {
-             steps {
-                    withCredentials([string(credentialsId: 'github-secret-token', variable: 'GITHUB_TOKEN')]) {
-                    dir('service') {
-                    sh """
-
-                        git config user.email jenkins
-                        git config user.name jenkins
-                        git tag -a "${TAG}" -m "Jenkins build ${env.BUILD_NUMBER}"
-                        #git push https://${GITHUB_TOKEN}@${GIT_REPO_NAME} ${TAG}
-                        git push origin "${TAG}"
-                    """
-                        }
-                    }
-                }
-        }
-        stage('Deploy to Servers') {
-            steps {
-                withCredentials([sshUserPrivateKey(credentialsId: 'ssh-deploy', keyFileVariable: 'SSH_KEY_PATH')]) {
-                script {
-                    // Loop through each server and deploy the Docker container
-                
-                        sh '''
-                            #!/bin/bash
-                            server='192.168.3.110'
-                                echo "Deploying to server: $server"
-                                ssh -o StrictHostKeyChecking=no -i ${SSH_KEY_PATH} ${SSH_USER}@$server "sudo docker pull ${IMAGE_NAME}:${TAG}"
-                                ssh -i ${SSH_KEY_PATH} ${SSH_USER}@$server "sudo docker stop ${DOCKER_NAME} || true"
-                                ssh -i ${SSH_KEY_PATH} ${SSH_USER}@$server "sudo docker rm ${DOCKER_NAME} || true"
-                                ssh -i ${SSH_KEY_PATH} ${SSH_USER}@$server "sudo docker run -d --name ${DOCKER_NAME} -p 8901:80 ${IMAGE_NAME}:${TAG}"
-                        '''
-                        
-                     }
-                }
-            }
-         }
     }
     post {
+        always {
+            echo 'Pipeline completed.'
+        }
         success {
-            script {
-                sh """
-                curl -X POST -H 'Content-Type: application/json' -d '{"chat_id": "${TELEGRAM_CHAT_ID}", "text": "✅✅✅Build ${currentBuild.result}\nJob name: ${currentBuild.fullDisplayName}\nBranch: ${GIT_BRANCH}\nJob url: ${env.BUILD_URL}", "disable_notification": false}' https://api.telegram.org/${TELEGRAM_BOT_TOKEN}/sendMessage
-                """
-            }
+            echo 'Application deployed successfully!'
         }
         failure {
-            script {
-                sh """
-                curl -X POST -H 'Content-Type: application/json' -d '{"chat_id": "${TELEGRAM_CHAT_ID}", "text": "❌❌❌Build ${currentBuild.result} \nJob name: ${currentBuild.fullDisplayName}\nBranch: ${GIT_BRANCH}\nJob url: ${env.BUILD_URL}", "disable_notification": false}' https://api.telegram.org/${TELEGRAM_BOT_TOKEN}/sendMessage
-                """
-            }
+            echo 'Pipeline failed!'
         }
     }
 }
