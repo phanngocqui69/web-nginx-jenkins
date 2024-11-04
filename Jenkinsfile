@@ -2,7 +2,7 @@ pipeline {
     agent any
     environment {
         GIT_BRANCH = "main" // Nhanh git build
-        GIT_REPO_NAME = "github.com/phanngocqui69/web-nginx-jenkins.git"
+        GIT_REPO_NAME = "https://github.com/phanngocqui69/web-nginx-jenkins.git"
         TELEGRAM_BOT_TOKEN = credentials('telegram-token') // Telegram bot access token
         TELEGRAM_CHAT_ID = credentials('telegram-chat-id') // Telegram bot chat id
         DOCKER_ENDPOINT = "nhontrnguyen" //Docker user Hub hoac Docker Private Resistry ENDPOINT
