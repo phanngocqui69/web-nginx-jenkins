@@ -29,7 +29,7 @@ pipeline {
             echo 'Pipeline completed.'
         }
         success {
-            echo 'Application deployed successfully!'
+            echo 'Application deployed auto successfully!'
         }
         failure {
             echo 'Pipeline failed!'
